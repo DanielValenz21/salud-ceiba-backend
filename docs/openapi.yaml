@@ -1,0 +1,100 @@
+openapi: 3.1.0
+info:
+  title: Salud La Ceiba API
+  version: "1.0.0"
+servers:
+  - url: http://localhost:4000/api/v1
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:    { type: string, format: email }
+        password: { type: string }
+    TokenResponse:
+      type: object
+      properties:
+        accessToken:  { type: string }
+        refreshToken: { type: string }
+    RefreshRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken: { type: string }
+    LogoutRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken: { type: string }
+    Error:
+      type: object
+      properties:
+        error:   { type: string }
+        message: { type: string }
+paths:
+  /auth/login:
+    post:
+      summary: Inicio de sesión
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        "200":
+          description: Tokens devueltos
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TokenResponse' }
+        "401":
+          description: Credenciales inválidas
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /auth/refresh:
+    post:
+      summary: Obtiene un nuevo access-token usando un refresh-token válido
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RefreshRequest' }
+      responses:
+        "200":
+          description: Access-token renovado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken: { type: string }
+        "401":
+          description: Refresh token inválido o expirado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+
+  /auth/logout:
+    post:
+      summary: Cierra la sesión (revoca el refresh-token)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LogoutRequest' }
+      responses:
+        "200":
+          description: Sesión terminada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string } 
