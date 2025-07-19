@@ -25,4 +25,6 @@ export const updateSchema = Joi.object({
   rol:      Joi.alternatives(Joi.string(), Joi.number().integer()).optional(),
   password: Joi.string().pattern(pwdRx).optional(),
   activo:   Joi.boolean().optional()
-}).min(1);      // requiere al menos un campo 
+})
+.min(1)          // al menos un campo modificable
+.unknown(true);  // ignora id, page, q… que no pertenecen al body 

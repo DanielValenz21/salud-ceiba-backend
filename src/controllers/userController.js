@@ -22,7 +22,7 @@ export const getUsers = async (req, res, next) => {
     const { page, limit, rol, activo, q } = req.query;
     const { offset } = (await import('../utils/pagination.js')).getPagination(req);
 
-    const { rows, total } = await listUsers({ offset, limit, rol, activo, q });
+    const { total, rows } = await listUsers({ offset, limit, rol, activo, q });
 
     res.json({ meta: { page, limit, total }, data: rows });
   } catch (err) { next(err); }
