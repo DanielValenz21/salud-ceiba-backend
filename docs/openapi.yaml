@@ -11,6 +11,7 @@ components:
       scheme: bearer
       bearerFormat: JWT
   schemas:
+    # ---------- Autenticación ----------
     LoginRequest:
       type: object
       required: [email, password]
@@ -32,12 +33,68 @@ components:
       required: [refreshToken]
       properties:
         refreshToken: { type: string }
+
+    # ---------- Usuarios & Roles ----------
+    UserList:
+      type: object
+      properties:
+        meta:
+          type: object
+          properties:
+            page:  { type: integer }
+            limit: { type: integer }
+            total: { type: integer }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/User' }
+    User:
+      type: object
+      properties:
+        user_id:   { type: integer }
+        nombre:    { type: string }
+        email:     { type: string }
+        rol:       { type: string }
+        activo:    { type: integer }
+        creado_en: { type: string, format: date-time }
+        persona_id:{ type: integer, nullable: true }
+
+    CreateUserRequest:
+      type: object
+      required: [nombre,email,rol,password]
+      properties:
+        nombre:     { type: string }
+        email:      { type: string, format: email }
+        rol:        { type: string }
+        password:   { type: string, format: password }
+        persona_id: { type: integer }
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        nombre:   { type: string }
+        email:    { type: string, format: email }
+        rol:      { type: string }
+        password: { type: string, format: password }
+        activo:   { type: boolean }
+      minProperties: 1
+
+    Role:
+      type: object
+      properties:
+        role_id: { type: integer }
+        name:    { type: string }
+
     Error:
       type: object
       properties:
         error:   { type: string }
         message: { type: string }
+
+security:
+  - bearerAuth: []
+
 paths:
+  # ---------- Auth (ya existente) ----------
   /auth/login:
     post:
       summary: Inicio de sesión
@@ -47,54 +104,110 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/LoginRequest' }
       responses:
-        "200":
-          description: Tokens devueltos
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/TokenResponse' }
-        "401":
-          description: Credenciales inválidas
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Error' }
+        "200": { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/TokenResponse' } } } }
+        "401": { description: Credenciales inválidas, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
 
   /auth/refresh:
     post:
-      summary: Obtiene un nuevo access-token usando un refresh-token válido
+      summary: Renueva access-token
       requestBody:
         required: true
         content:
           application/json:
             schema: { $ref: '#/components/schemas/RefreshRequest' }
       responses:
-        "200":
-          description: Access-token renovado
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  accessToken: { type: string }
-        "401":
-          description: Refresh token inválido o expirado
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/Error' }
+        "200": { description: OK, content: { application/json: { schema: { type: object, properties: { accessToken: { type: string } } } } } }
+        "401": { description: Refresh inválido, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
 
   /auth/logout:
     post:
-      summary: Cierra la sesión (revoca el refresh-token)
+      summary: Cierra sesión
       requestBody:
         required: true
         content:
           application/json:
             schema: { $ref: '#/components/schemas/LogoutRequest' }
       responses:
+        "200": { description: Sesión terminada, content: { application/json: { schema: { type: object, properties: { message: { type: string } } } } } }
+
+  # ---------- Users ----------
+  /users:
+    get:
+      summary: Lista paginada de usuarios
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 20 }
+        - in: query
+          name: rol
+          schema: { type: string }
+        - in: query
+          name: activo
+          schema: { type: boolean }
+        - in: query
+          name: q
+          schema: { type: string }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/UserList' } } } }
+    post:
+      summary: Crea un nuevo usuario
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateUserRequest' }
+      responses:
+        "201": { description: Creado, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
+
+  /users/{id}:
+    get:
+      summary: Obtiene un usuario
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
+        "404": { description: No encontrado, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+    put:
+      summary: Actualiza un usuario
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateUserRequest' }
+      responses:
+        "200": { description: OK, content: { application/json: { schema: { type: object, properties: { message: { type: string } } } } } }
+
+    delete:
+      summary: Desactiva un usuario
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "204": { description: Sin contenido }
+
+  # ---------- Roles ----------
+  /roles:
+    get:
+      summary: Devuelve catálogo de roles
+      responses:
         "200":
-          description: Sesión terminada
+          description: OK
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message: { type: string } 
+                type: array
+                items: { $ref: '#/components/schemas/Role' } 
