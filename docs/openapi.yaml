@@ -84,6 +84,26 @@ components:
         role_id: { type: integer }
         name:    { type: string }
 
+    # ---------- Territorios & Sectores ----------
+    Territorio:
+      type: object
+      properties:
+        territorio_id: { type: integer }
+        codigo:        { type: string }
+        nombre:        { type: string }
+
+    SectorGeoJSON:
+      type: object
+      description: GeoJSON FeatureCollection
+
+    CreateSector:
+      type: object
+      required: [territorio_id,nombre,geom]
+      properties:
+        territorio_id: { type: integer }
+        nombre:        { type: string }
+        geom:          { type: object }
+
     Error:
       type: object
       properties:
@@ -94,9 +114,12 @@ security:
   - bearerAuth: []
 
 paths:
-  # ---------- Auth (ya existente) ----------
+  # ========================================
+  # 🔐 AUTENTICACIÓN
+  # ========================================
   /auth/login:
     post:
+      tags: [Autenticación]
       summary: Inicio de sesión
       requestBody:
         required: true
@@ -109,6 +132,7 @@ paths:
 
   /auth/refresh:
     post:
+      tags: [Autenticación]
       summary: Renueva access-token
       requestBody:
         required: true
@@ -121,6 +145,7 @@ paths:
 
   /auth/logout:
     post:
+      tags: [Autenticación]
       summary: Cierra sesión
       requestBody:
         required: true
@@ -130,9 +155,12 @@ paths:
       responses:
         "200": { description: Sesión terminada, content: { application/json: { schema: { type: object, properties: { message: { type: string } } } } } }
 
-  # ---------- Users ----------
+  # ========================================
+  # 👥 USUARIOS Y ROLES
+  # ========================================
   /users:
     get:
+      tags: [Usuarios]
       summary: Lista paginada de usuarios
       parameters:
         - in: query
@@ -153,6 +181,7 @@ paths:
       responses:
         "200": { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/UserList' } } } }
     post:
+      tags: [Usuarios]
       summary: Crea un nuevo usuario
       requestBody:
         required: true
@@ -164,6 +193,7 @@ paths:
 
   /users/{id}:
     get:
+      tags: [Usuarios]
       summary: Obtiene un usuario
       parameters:
         - name: id
@@ -175,6 +205,7 @@ paths:
         "404": { description: No encontrado, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
 
     put:
+      tags: [Usuarios]
       summary: Actualiza un usuario
       parameters:
         - name: id
@@ -190,6 +221,7 @@ paths:
         "200": { description: OK, content: { application/json: { schema: { type: object, properties: { message: { type: string } } } } } }
 
     delete:
+      tags: [Usuarios]
       summary: Desactiva un usuario
       parameters:
         - name: id
@@ -199,9 +231,9 @@ paths:
       responses:
         "204": { description: Sin contenido }
 
-  # ---------- Roles ----------
   /roles:
     get:
+      tags: [Usuarios]
       summary: Devuelve catálogo de roles
       responses:
         "200":
@@ -210,4 +242,123 @@ paths:
             application/json:
               schema:
                 type: array
-                items: { $ref: '#/components/schemas/Role' } 
+                items: { $ref: '#/components/schemas/Role' }
+
+  # ========================================
+  # 🗺️ SECTORIZACIÓN
+  # ========================================
+  /territorios:
+    get:
+      tags: [Sectorización]
+      summary: Lista de territorios
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Territorio' }
+
+  /territorios/{id}/sectores:
+    get:
+      tags: [Sectorización]
+      summary: Sectores por territorio
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: includeStats
+          schema: { type: boolean }
+      responses:
+        "200": { description: OK }
+        "404": { description: No encontrado, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /sectores:
+    get:
+      tags: [Sectorización]
+      summary: GeoJSON de sectores
+      parameters:
+        - in: query
+          name: bbox
+          schema: { type: string, example: "-91.4,14.7,-91.2,14.9" }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SectorGeoJSON' }
+    post:
+      tags: [Sectorización]
+      summary: Crear sector
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateSector' }
+      responses:
+        "201": { description: Creado }
+        "400": { description: Error de validación, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /sectores/{id}:
+    get:
+      tags: [Sectorización]
+      summary: Ficha sector
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: OK }
+        "404": { description: No encontrado, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    put:
+      tags: [Sectorización]
+      summary: Editar sector
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateSector' }
+      responses:
+        "200": { description: OK }
+        "400": { description: Error de validación, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    delete:
+      tags: [Sectorización]
+      summary: Desactivar sector
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        "204": { description: Sin contenido }
+        "400": { description: Sector con viviendas activas, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /sectores/{id}/viviendas:
+    get:
+      tags: [Sectorización]
+      summary: Viviendas por sector
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 20 }
+        - in: query
+          name: withGPS
+          schema: { type: boolean }
+      responses:
+        "200": { description: OK } 
