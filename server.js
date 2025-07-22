@@ -11,6 +11,7 @@ import roleRoutes  from './src/routes/role.js';
 import territorioRoutes from './src/routes/territorio.js';
 import sectorRoutes     from './src/routes/sector.js';
 import viviendaRoutes   from './src/routes/vivienda.js';
+import personaRoutes    from './src/routes/persona.js';
 
 import { errorHandler } from './src/middlewares/errorHandler.js';
 import { auditLog }    from './src/middlewares/log.js';
@@ -37,6 +38,7 @@ app.use('/api/v1/roles',      authenticate, auditLog, roleRoutes);
 app.use('/api/v1/territorios',authenticate, auditLog, territorioRoutes);
  app.use('/api/v1/sectores',   authenticate, auditLog, sectorRoutes);
 app.use('/api/v1/viviendas',   viviendaRoutes);   // router maneja auth y log interno
+app.use('/api/v1/personas',    personaRoutes);   // router maneja auth y log interno
 
 /* 404 */
 app.use((_req, res) =>

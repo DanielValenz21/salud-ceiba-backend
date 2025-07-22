@@ -9,6 +9,7 @@ import {
   updateViviendaSchema,
   personasQuerySchema
 } from '../validators/vivienda.js';
+import { createPersonaSchema } from '../validators/persona.js';
 
 import {
   createVivienda,
@@ -16,6 +17,7 @@ import {
   editVivienda,
   getPersonasByVivienda
 } from '../controllers/viviendaController.js';
+import { createPersona } from '../controllers/personaController.js';
 
 /* ids de rol: 1-PROMOTOR 2-DIGITADOR 3-ENFERMERA 4-ADMIN */
 const router = Router();
@@ -48,6 +50,14 @@ router.get('/:id/personas',
   validate(personasQuerySchema),
   auditLog,
   getPersonasByVivienda
+);
+
+router.post('/:id/personas',
+  authenticate,
+  authorizeRoles(1, 2, 3), // Promotor | Digitador | Enfermera
+  validate(createPersonaSchema),
+  auditLog,
+  createPersona
 );
 
 export default router;
