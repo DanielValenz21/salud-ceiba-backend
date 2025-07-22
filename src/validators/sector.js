@@ -31,4 +31,4 @@ export const viviendasQuerySchema = Joi.object({
   page:    Joi.number().integer().min(1).default(1),
   limit:   Joi.number().integer().min(1).max(100).default(20),
   withGPS: Joi.boolean().truthy('true').falsy('false').default(false)
-});
+}).unknown(true);          // ← permite “id” que llega desde params
