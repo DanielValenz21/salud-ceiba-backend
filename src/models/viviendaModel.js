@@ -70,7 +70,7 @@ export const updateVivienda = async (id, data) => {
 
 /* ► Personas de la vivienda -------------------------------------- */
 export const listPersonasByVivienda = async ({ viviendaId, offset, limit }) => {
-  const [rows] = await pool.execute(
+  const [rows] = await pool.query(          // 👈 cambia execute → query
     `SELECT persona_id, nombres, apellidos, sexo, fecha_nac
        FROM personas
       WHERE vivienda_id = ?

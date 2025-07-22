@@ -17,7 +17,7 @@ export const updateViviendaSchema = Joi.object({
   codigo_familia: Joi.string().max(12),
   direccion:      Joi.string().max(160),
   lat, lng
-}).min(1);
+}).min(1).unknown(true);   // permite “id” que llega desde params
 
 /* ---------- GET /viviendas/:id/personas ---- */
 export const personasQuerySchema = Joi.object({
