@@ -24,7 +24,7 @@ export const updateSectorSchema = Joi.object({
   nombre:          Joi.string().max(80),
   referencia_lat:  lat,
   referencia_lng:  lng
-}).min(1);
+}).min(1).unknown(true);   // ← permite id y cualquier otra llave ajena
 
 /* ---------- Viviendas query ------ */
 export const viviendasQuerySchema = Joi.object({
