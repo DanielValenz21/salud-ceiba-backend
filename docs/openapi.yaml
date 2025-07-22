@@ -4,6 +4,9 @@ info:
   version: "1.0.0"
 servers:
   - url: http://localhost:4000/api/v1
+tags:
+  - name: Sectorización
+    description: End-points para gestionar territorios, sectores y viviendas (sin geometría GIS)
 components:
   securitySchemes:
     bearerAuth:
@@ -109,7 +112,6 @@ components:
       properties:
         error:   { type: string }
         message: { type: string }
-
 security:
   - bearerAuth: []
 
@@ -250,7 +252,7 @@ paths:
   /territorios:
     get:
       tags: [Sectorización]
-      summary: Lista de territorios
+      summary: Lista fija de territorios
       responses:
         "200":
           description: OK
@@ -258,7 +260,12 @@ paths:
             application/json:
               schema:
                 type: array
-                items: { $ref: '#/components/schemas/Territorio' }
+                items:
+                  type: object
+                  properties:
+                    territorio_id: { type: integer, example: 1 }
+                    codigo:        { type: string,  example: "T1" }
+                    nombre:        { type: string,  example: "Territorio 1" }
 
   /territorios/{id}/sectores:
     get:
@@ -268,79 +275,116 @@ paths:
         - in: path
           name: id
           required: true
-          schema: { type: integer }
+          schema:
+            type: integer
         - in: query
           name: includeStats
-          schema: { type: boolean }
-      responses:
-        "200": { description: OK }
-        "404": { description: No encontrado, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-
-  /sectores:
-    get:
-      tags: [Sectorización]
-      summary: GeoJSON de sectores
-      parameters:
-        - in: query
-          name: bbox
-          schema: { type: string, example: "-91.4,14.7,-91.2,14.9" }
+          schema:
+            type: boolean
       responses:
         "200":
           description: OK
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/SectorGeoJSON' }
+              schema:
+                type: object
+                properties:
+                  territorio:
+                    type: object
+                    properties:
+                      territorio_id: { type: integer }
+                      codigo:        { type: string }
+                      nombre:        { type: string }
+                  sectores:
+                    type: array
+                    items:
+                      oneOf:
+                        - $ref: '#/components/schemas/SectorBasic'
+                        - $ref: '#/components/schemas/SectorStats'
+        "404": { description: No encontrado }
+
+  /sectores:
+    get:
+      tags: [Sectorización]
+      summary: Lista paginada de sectores
+      parameters:
+        - in: query
+          name: territorio_id
+          schema: { type: integer }
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 20 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SectorList' }
     post:
       tags: [Sectorización]
-      summary: Crear sector
+      summary: Crea sector
       requestBody:
         required: true
         content:
           application/json:
             schema: { $ref: '#/components/schemas/CreateSector' }
       responses:
-        "201": { description: Creado }
-        "400": { description: Error de validación, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        "201":
+          description: Creado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sector_id: { type: integer, example: 12 }
+        "409": { description: Nombre duplicado }
 
   /sectores/{id}:
     get:
       tags: [Sectorización]
-      summary: Ficha sector
+      summary: Ficha de sector
       parameters:
-        - in: path
-          name: id
+        - name: id
+          in: path
           required: true
           schema: { type: integer }
       responses:
-        "200": { description: OK }
-        "404": { description: No encontrado, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SectorStats' }
+        "404": { description: No encontrado }
     put:
       tags: [Sectorización]
-      summary: Editar sector
+      summary: Edita sector
       parameters:
-        - in: path
-          name: id
+        - name: id
+          in: path
           required: true
           schema: { type: integer }
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/CreateSector' }
+            schema: { $ref: '#/components/schemas/UpdateSector' }
       responses:
-        "200": { description: OK }
-        "400": { description: Error de validación, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        "200": { description: Actualizado }
+        "409": { description: Conflicto de nombre }
     delete:
       tags: [Sectorización]
-      summary: Desactivar sector
+      summary: Desactiva sector (soft-delete)
       parameters:
-        - in: path
-          name: id
+        - name: id
+          in: path
           required: true
           schema: { type: integer }
       responses:
         "204": { description: Sin contenido }
-        "400": { description: Sector con viviendas activas, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        "400": { description: Viviendas activas }
 
   /sectores/{id}/viviendas:
     get:
@@ -359,6 +403,16 @@ paths:
           schema: { type: integer, default: 20 }
         - in: query
           name: withGPS
-          schema: { type: boolean }
+          schema: { type: boolean, default: false }
       responses:
-        "200": { description: OK } 
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ViviendaList' }
+        "404":
+          description: Sector no encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'

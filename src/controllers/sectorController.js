@@ -1,41 +1,78 @@
-import { listSectorsGeoJSON, insertSector } from '../models/sectorModel.js';
-import { createSectorSchema } from '../validators/sector.js';
-import Joi from 'joi';
+import {
+  listSectors,
+  insertSector,
+  getSectorById,
+  updateSector,
+  softDeleteSector,
+  listViviendasBySector
+} from '../models/sectorModel.js';
+import { getPagination } from '../utils/pagination.js';
 
-/* GET /sectores?bbox=minLon,minLat,maxLon,maxLat */
-export const getSectorsGeo = async (req, res, next) => {
+/* ---------- GET /sectores ------------------- */
+export const listSectores = async (req, res, next) => {
   try {
-    let bbox = null;
-    if (req.query.bbox) {
-      // Validar bbox = 4 números separados por coma
-      const schema = Joi.string()
-        .pattern(/^(-?\d+(\.\d+)?){1},(-?\d+(\.\d+)?){1},(-?\d+(\.\d+)?){1},(-?\d+(\.\d+)?){1}$/)
-        .required();
-      const { error } = schema.validate(req.query.bbox);
-      if (error) return res.status(400).json({ error: 'BadRequest', message: 'bbox inválido' });
+    const { page, limit, territorio_id } = req.query;
+    const { offset } = getPagination(req);
+    const { total, rows } = await listSectors({ territorio_id, offset, limit });
 
-      bbox = req.query.bbox.split(',').map(Number); // [minLon,minLat,maxLon,maxLat]
-    }
-
-    const fc = await listSectorsGeoJSON(bbox);
-    res.json(fc);
-  } catch (err) {
-    next(err);
-  }
+    res.json({ meta:{ page, limit, total }, data: rows });
+  } catch (err) { next(err); }
 };
 
-/* POST /sectores */
+/* ---------- POST /sectores ------------------ */
 export const createSector = async (req, res, next) => {
   try {
-    const { error, value } = createSectorSchema.validate(req.body);
-    if (error) return res.status(400).json({ error:'BadRequest', message: error.message });
+    const sectorId = await insertSector(req.body);
+    res.locals.pk = sectorId;
+    res.status(201).json({ sector_id: sectorId });
+  } catch (err) { next(err); }
+};
 
-    const sectorId = await insertSector({
-      territorio_id : value.territorio_id,
-      nombre        : value.nombre,
-      geomGeoJSON   : value.geom
+/* ---------- GET /sectores/:id --------------- */
+export const getSector = async (req, res, next) => {
+  try {
+    const sector = await getSectorById(req.params.id);
+    if (!sector)
+      return res.status(404).json({ error:'NotFound', message:'Sector no encontrado' });
+    res.json(sector);
+  } catch (err) { next(err); }
+};
+
+/* ---------- PUT /sectores/:id --------------- */
+export const editSector = async (req, res, next) => {
+  try {
+    await updateSector(req.params.id, req.body);
+    res.locals.pk = req.params.id;
+    res.json({ message:'Sector actualizado' });
+  } catch (err) { next(err); }
+};
+
+/* ---------- DELETE /sectores/:id ------------ */
+export const deleteSector = async (req, res, next) => {
+  try {
+    await softDeleteSector(req.params.id);
+    res.locals.pk = req.params.id;
+    res.status(204).end();
+  } catch (err) { next(err); }
+};
+
+/* ---------- GET /sectores/:id/viviendas ----- */
+export const getViviendasBySector = async (req, res, next) => {
+  try {
+    const { page, limit, withGPS } = req.query;
+    const { offset } = getPagination(req);
+
+    const data = await listViviendasBySector({
+      sectorId: req.params.id,
+      offset,
+      limit,
+      withGPS: withGPS === 'true'
     });
 
-    res.status(201).json({ sector_id: sectorId });
+    res.json({
+      meta:{ page, limit, total:data.total },
+      data: data.rows,
+      sector:{ sector_id:req.params.id }
+    });
   } catch (err) { next(err); }
 };
