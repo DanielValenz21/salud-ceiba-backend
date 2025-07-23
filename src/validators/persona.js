@@ -11,7 +11,7 @@ export const createPersonaSchema = Joi.object({
   fecha_nac:  fecha.required(),
   dpi:        dpiRx.optional(),
   idioma:     Joi.string().max(40).optional()
-});
+}).unknown(true);
 
 export const updatePersonaSchema = Joi.object({
   nombres:    Joi.string().max(60),

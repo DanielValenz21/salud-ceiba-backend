@@ -54,7 +54,7 @@ router.get('/:id/personas',
 
 router.post('/:id/personas',
   authenticate,
-  authorizeRoles(1, 2, 3), // Promotor | Digitador | Enfermera
+  authorizeRoles(1, 2, 3, 4), // Promotor | Digitador | Enfermera | Admin
   validate(createPersonaSchema),
   auditLog,
   createPersona
