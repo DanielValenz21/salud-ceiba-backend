@@ -11,7 +11,11 @@ export const resolveRoleId = async (rol) => {
   if (!rol) return null;
   if (/^\d+$/.test(rol)) return Number(rol);
 
-  const [rows] = await pool.execute('SELECT role_id FROM roles WHERE name = ?', [rol]);
+  // Buscar nombre de rol de forma case-insensitive
+  const [rows] = await pool.execute(
+    'SELECT role_id FROM roles WHERE LOWER(name) = LOWER(?)',
+    [rol]
+  );
   return rows[0]?.role_id ?? null;
 };
 

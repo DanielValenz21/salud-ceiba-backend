@@ -18,6 +18,7 @@ import metricaRoutes    from './src/routes/metrica.js';
 import { errorHandler } from './src/middlewares/errorHandler.js';
 import { auditLog }    from './src/middlewares/log.js';
 import { authenticate } from './src/middlewares/auth.js';           // protege /users y /roles
+import clinicosRoutes  from './src/routes/clinicosRoutes.js';
 
 dotenv.config();
 const app = express();
@@ -43,6 +44,8 @@ app.use('/api/v1/viviendas',   viviendaRoutes);   // router maneja auth y log in
 app.use('/api/v1/personas',    personaRoutes);   // router maneja auth y log interno
 app.use('/api/v1/eventos',     eventosRoutes);
 app.use('/api/v1/metricas',    metricaRoutes);
+// Rutas clínicos (vacunación, nutrición, reproductiva, epidemiología, morbilidad, mortalidad, ambiente)
+app.use('/api/v1', clinicosRoutes);
 
 /* 404 */
 app.use((_req, res) =>

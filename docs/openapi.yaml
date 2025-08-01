@@ -306,6 +306,33 @@ components:
           type: integer
           minimum: 0
           nullable: true
+    MorbilidadRow:
+      type: object
+      properties:
+        causa_id:   { type: integer }
+        grupo_edad: { type: string, enum: ['0-<1','1-4','5-14','15+'] }
+        casos:      { type: integer }
+    MorbilidadRequest:
+      type: object
+      required: [anio, mes, territorio_id, datos]
+      properties:
+        anio:          { type: integer }
+        mes:           { type: integer }
+        territorio_id: { type: integer }
+        datos:
+          type: array
+          items: { $ref: '#/components/schemas/MorbilidadRow' }
+    DefuncionRequest:
+      type: object
+      required: [causa_id, territorio_id, fecha_defuncion, lugar_defuncion, certificador_id]
+      properties:
+        persona_id:      { type: integer, nullable: true }
+        causa_id:        { type: integer }
+        territorio_id:   { type: integer }
+        fecha_defuncion: { type: string, format: date-time }
+        lugar_defuncion: { type: string, enum: ['hospital','domicilio','otro'] }
+        certificador_id: { type: integer }
+        detalle_json:    { type: object }
 
 security:
   - bearerAuth: []
@@ -435,11 +462,283 @@ paths:
       responses:
         "200":
           description: OK
+
+# =========================
+# 🚑 MÓDULO CLÍNICOS
+# =========================
+
+  /vacunacion/eventos:
+    post:
+      tags: [Eventos]
+      summary: Crea un evento de vacunación
+      security: [ { bearerAuth: [] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventoRequest'
+      responses:
+        "201":
+          description: Creado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  evento_id: { type: integer }
+
+  /vacunacion/coberturas:
+    get:
+      tags: [Métricas]
+      summary: Lista coberturas de vacunación
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: query
+          name: territorio_id
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: anio
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: OK
           content:
             application/json:
               schema:
                 type: array
-                items: { $ref: '#/components/schemas/Role' }
+                items:
+                  type: object
+                  properties:
+                    ind_id:        { type: integer }
+                    mes:           { type: integer }
+                    cobertura_pct: { type: number }
+
+  /nutricion/eventos:
+    post:
+      tags: [Eventos]
+      summary: Crea un evento de nutrición
+      security: [ { bearerAuth: [] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventoRequest'
+      responses:
+        "201":
+          description: Creado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  evento_id: { type: integer }
+
+  /nutricion/coberturas:
+    get:
+      tags: [Métricas]
+      summary: Lista coberturas de nutrición
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: query
+          name: territorio_id
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: anio
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    ind_id:        { type: integer }
+                    mes:           { type: integer }
+                    cobertura_pct: { type: number }
+
+  /reproductiva/eventos:
+    post:
+      tags: [Eventos]
+      summary: Crea un evento de salud reproductiva
+      security: [ { bearerAuth: [] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventoRequest'
+      responses:
+        "201":
+          description: Creado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  evento_id: { type: integer }
+
+  /reproductiva/coberturas:
+    get:
+      tags: [Métricas]
+      summary: Lista coberturas de salud reproductiva
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: query
+          name: territorio_id
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: anio
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    ind_id:        { type: integer }
+                    mes:           { type: integer }
+                    cobertura_pct: { type: number }
+
+  /epidemiologia/eventos:
+    post:
+      tags: [Eventos]
+      summary: Crea un evento de epidemiología
+      security: [ { bearerAuth: [] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEventoRequest'
+      responses:
+        "201":
+          description: Creado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  evento_id: { type: integer }
+
+  /epidemiologia/coberturas:
+    get:
+      tags: [Métricas]
+      summary: Lista coberturas de epidemiología
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: query
+          name: territorio_id
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: anio
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    ind_id:        { type: integer }
+                    mes:           { type: integer }
+                    cobertura_pct: { type: number }
+
+  /morbilidad/casos:
+    post:
+      tags: [Métricas]
+      summary: Inserta o actualiza lote de morbilidad
+      security: [ { bearerAuth: [] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MorbilidadRequest'
+      responses:
+        "204": { description: Sin contenido }
+
+    get:
+      tags: [Métricas]
+      summary: Lista morbilidad filtrada
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: query
+          name: causa_id
+          schema: { type: integer }
+        - in: query
+          name: territorio_id
+          schema: { type: integer }
+        - in: query
+          name: anio
+          schema: { type: integer }
+        - in: query
+          name: mes
+          schema: { type: integer }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { type: object }
+
+  /mortalidad/registros:
+    post:
+      tags: [Métricas]
+      summary: Inserta nueva defunción
+      security: [ { bearerAuth: [] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DefuncionRequest'
+      responses:
+        "201":
+          description: Creado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  defuncion_id: { type: integer }
+
+  /ambiente/metricas:
+    post:
+      tags: [Métricas]
+      summary: Inserta o actualiza métricas de ambiente
+      security: [ { bearerAuth: [] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items: { $ref: '#/components/schemas/MetricaInput' }
+      responses:
+        "204":
+          description: Sin contenido
 
   # ========================================
   # 🗺️ SECTORIZACIÓN
