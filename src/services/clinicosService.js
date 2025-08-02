@@ -100,10 +100,46 @@ export async function upsertMetrica(payload) {
 /* ---------- DASHBOARD COBERTURAS ---------- */
 export async function listCoberturas({ territorio_id, anio }) {
   const [rows] = await db.execute(
-    `SELECT ind_id, MOD(periodo,100) AS mes, cobertura_pct
-       FROM dashboard_coberturas
-      WHERE territorio_id = ? AND FLOOR(periodo/100) = ?`,
+    `SELECT
+         ind_id,
+         mes,
+         ROUND(valor_num / NULLIF(valor_den,0) * 100, 1) AS cobertura_pct
+       FROM metrica_mensual
+      WHERE territorio_id = ?
+        AND anio = ?
+        AND valor_den IS NOT NULL
+      ORDER BY ind_id, mes`,
     [territorio_id, anio]
   );
+  return rows;
+}
+ 
+/* ---------- MORBILIDAD – GET /morbilidad/casos ---------- */
+export async function listMorbilidad({ causa_id, territorio_id, anio, mes }) {
+  const where   = ['1=1'];
+  const params  = [];
+
+  if (causa_id)      { where.push('m.causa_id      = ?'); params.push(causa_id);      }
+  if (territorio_id) { where.push('m.territorio_id = ?'); params.push(territorio_id); }
+  if (anio)          { where.push('m.anio          = ?'); params.push(anio);          }
+  if (mes)           { where.push('m.mes           = ?'); params.push(mes);           }
+
+  const whereSQL = where.length ? 'WHERE ' + where.join(' AND ') : '';
+
+  const [rows] = await db.execute(
+    `SELECT
+        m.causa_id,
+        c.descripcion          AS causa,
+        m.territorio_id,
+        m.anio, m.mes,
+        m.grupo_edad,
+        m.casos
+       FROM   morbilidad_causa_mes m
+       JOIN   causas c USING (causa_id)
+       ${whereSQL}
+       ORDER  BY m.anio DESC, m.mes DESC, m.causa_id, m.grupo_edad`,
+    params
+  );
+
   return rows;
 }
