@@ -21,6 +21,8 @@ tags:
     description: Gestión de métricas mensuales
   - name: Metas
     description: Gestión de metas anuales por indicador y territorio
+  - name: Dashboard
+    description: KPIs y series temporales
 components:
   securitySchemes:
     bearerAuth:
@@ -359,6 +361,64 @@ security:
   - bearerAuth: []
 
 paths:
+  /dashboard/coberturas:
+    get:
+      tags: [Dashboard]
+      summary: KPIs por mes / territorio / sector
+      parameters:
+        - in: query
+          name: periodo
+          schema: { type: string, example: "202507-202506" }
+        - in: query
+          name: territorio_id
+          schema: { type: integer, example: 1 }
+        - in: query
+          name: sector_id
+          schema: { type: integer, example: 3 }
+        - in: query
+          name: ind_id
+          schema: { type: integer, example: 4 }
+      responses:
+        "200": { description: OK }
+
+  /dashboard/alertas:
+    get:
+      tags: [Dashboard]
+      summary: Indicadores bajo la meta (<100 %)
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: query
+          name: periodo
+          schema: { type: string, example: "202507" }
+        - in: query
+          name: territorio_id
+          schema: { type: integer, example: 2 }
+      responses:
+        "200": { description: OK }
+
+  /dashboard/series:
+    get:
+      tags: [Dashboard]
+      summary: Serie histórica mensual de un indicador
+      parameters:
+        - in: query
+          name: ind_id
+          required: true
+          schema: { type: integer, example: 3 }
+        - in: query
+          name: territorio_id
+          schema: { type: integer, example: 1 }
+        - in: query
+          name: sector_id
+          schema: { type: integer, example: 2 }
+        - in: query
+          name: desde
+          schema: { type: string, example: "202401" }
+        - in: query
+          name: hasta
+          schema: { type: string, example: "202507" }
+      responses:
+        "200": { description: OK }
   # ========================================
   # 🔐 AUTENTICACIÓN
   # ========================================

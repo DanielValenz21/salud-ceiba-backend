@@ -20,6 +20,7 @@ import { errorHandler } from './src/middlewares/errorHandler.js';
 import { auditLog }    from './src/middlewares/log.js';
 import { authenticate } from './src/middlewares/auth.js';           // protege /users y /roles
 import clinicosRoutes  from './src/routes/clinicosRoutes.js';
+import dashboardRoutes from './src/routes/dashboard.js';
 
 dotenv.config();
 const app = express();
@@ -49,6 +50,9 @@ app.use('/api/v1/metricas',    metricaRoutes);
 app.use('/api/v1', clinicosRoutes);
 // Metas module (routes handle auth internally)
 app.use('/api/v1/metas', metasRoutes);
+
+/* ── NUEVO ── Dashboard & KPI (lectura) */
+app.use('/api/v1/dashboard', dashboardRoutes);
 
 /* 404 */
 app.use((_req, res) =>
