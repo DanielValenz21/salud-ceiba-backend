@@ -19,6 +19,8 @@ tags:
     description: Gestión de eventos
   - name: Métricas
     description: Gestión de métricas mensuales
+  - name: Metas
+    description: Gestión de metas anuales por indicador y territorio
 components:
   securitySchemes:
     bearerAuth:
@@ -333,6 +335,25 @@ components:
         lugar_defuncion: { type: string, enum: ['hospital','domicilio','otro'] }
         certificador_id: { type: integer }
         detalle_json:    { type: object }
+    # ---------- Metas ----------
+    Meta:
+      type: object
+      properties:
+        meta_id:           { type: integer }
+        ind_id:            { type: integer }
+        ind_nombre:        { type: string }
+        territorio_id:     { type: integer }
+        territorio_nombre: { type: string }
+        anio:              { type: integer }
+        valor_objetivo:    { type: integer }
+    MetaUpsert:
+      type: object
+      required: [ind_id, territorio_id, anio, valor_objetivo]
+      properties:
+        ind_id:          { type: integer }
+        territorio_id:   { type: integer }
+        anio:            { type: integer }
+        valor_objetivo:  { type: integer }
 
 security:
   - bearerAuth: []
@@ -739,6 +760,52 @@ paths:
       responses:
         "204":
           description: Sin contenido
+
+  # ========================================
+  # ✅ Metas
+  # ========================================
+  /metas:
+    get:
+      tags: [Metas]
+      summary: Consultar metas anuales por indicador y territorio
+      parameters:
+        - in: query
+          name: territorio_id
+          schema: { type: integer, example: 1 }
+        - in: query
+          name: anio
+          schema: { type: integer, example: 2025 }
+        - in: query
+          name: ind_id
+          schema: { type: integer, example: 3 }
+      responses:
+        '200':
+          description: Lista de metas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Meta'
+    put:
+      tags: [Metas]
+      security:
+        - bearerAuth: []
+      summary: Crear o actualizar metas (upsert)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/MetaUpsert'
+                - type: array
+                  items: { $ref: '#/components/schemas/MetaUpsert' }
+      responses:
+        '200': { description: Metas actualizadas o sin cambios }
+        '201': { description: Todas las metas fueron creadas }
+        '400': { description: Validación o FK inválida }
+        '403': { description: Requiere rol ADMIN }
 
   # ========================================
   # 🗺️ SECTORIZACIÓN

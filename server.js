@@ -14,6 +14,7 @@ import viviendaRoutes   from './src/routes/vivienda.js';
 import personaRoutes    from './src/routes/persona.js';
 import eventosRoutes    from './src/routes/eventos.routes.js';
 import metricaRoutes    from './src/routes/metrica.js';
+import metasRoutes     from './src/routes/metas.routes.js';
 
 import { errorHandler } from './src/middlewares/errorHandler.js';
 import { auditLog }    from './src/middlewares/log.js';
@@ -46,6 +47,8 @@ app.use('/api/v1/eventos',     eventosRoutes);
 app.use('/api/v1/metricas',    metricaRoutes);
 // Rutas clínicos (vacunación, nutrición, reproductiva, epidemiología, morbilidad, mortalidad, ambiente)
 app.use('/api/v1', clinicosRoutes);
+// Metas module (routes handle auth internally)
+app.use('/api/v1/metas', metasRoutes);
 
 /* 404 */
 app.use((_req, res) =>
