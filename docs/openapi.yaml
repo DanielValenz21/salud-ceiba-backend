@@ -23,6 +23,8 @@ tags:
     description: Gestión de metas anuales por indicador y territorio
   - name: Dashboard
     description: KPIs y series temporales
+  - name: Inventario
+    description: Gestión de inventario de insumos y trazabilidad
 components:
   securitySchemes:
     bearerAuth:
@@ -357,6 +359,17 @@ components:
         anio:            { type: integer }
         valor_objetivo:  { type: integer }
 
+    MovimientoInsumo:
+      type: object
+      required: [insumo_id,lote,tipo_mov,cantidad]
+      properties:
+        insumo_id:  { type: integer }
+        lote:       { type: string, maxLength: 20 }
+        tipo_mov:   { type: string, enum: [ENTRADA,SALIDA] }
+        cantidad:   { type: integer, minimum: 1 }
+        fecha_mov:  { type: string, format: date }
+        referencia: { type: string, maxLength: 80 }
+
 security:
   - bearerAuth: []
 
@@ -419,6 +432,57 @@ paths:
           schema: { type: string, example: "202507" }
       responses:
         "200": { description: OK }
+  /insumos:
+    get:
+      tags: [Inventario]
+      summary: Lista existencias por lote
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: query
+          name: categoria
+          schema: { type: string, enum: [vacuna,suplemento,reactivo,otro] }
+        - in: query
+          name: insumo_id
+          schema: { type: integer }
+        - in: query
+          name: lote
+          schema: { type: string }
+        - in: query
+          name: resumen
+          schema: { type: boolean }
+      responses:
+        "200": { description: OK }
+
+  /insumos/movimientos:
+    post:
+      tags: [Inventario]
+      summary: Registra entrada o salida
+      security: [ { bearerAuth: [] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MovimientoInsumo' }
+      responses:
+        "201": { description: Creado }
+        "409": { description: Stock insuficiente }
+
+  /insumos/lotes/{lote}:
+    get:
+      tags: [Inventario]
+      summary: Historial completo de un lote
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: path
+          name: lote
+          required: true
+          schema: { type: string }
+        - in: query
+          name: insumo_id
+          schema: { type: integer }
+      responses:
+        "200": { description: OK }
+        "404": { description: No encontrado }
   # ========================================
   # 🔐 AUTENTICACIÓN
   # ========================================

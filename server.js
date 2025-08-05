@@ -21,6 +21,7 @@ import { auditLog }    from './src/middlewares/log.js';
 import { authenticate } from './src/middlewares/auth.js';           // protege /users y /roles
 import clinicosRoutes  from './src/routes/clinicosRoutes.js';
 import dashboardRoutes from './src/routes/dashboard.js';
+import insumosRoutes   from './src/routes/insumos.js';   // ← NUEVO
 
 dotenv.config();
 const app = express();
@@ -50,6 +51,8 @@ app.use('/api/v1/metricas',    metricaRoutes);
 app.use('/api/v1', clinicosRoutes);
 // Metas module (routes handle auth internally)
 app.use('/api/v1/metas', metasRoutes);
+// Inventory module (Insumos)
+app.use('/api/v1', insumosRoutes);           // ← NUEVO
 
 /* ── NUEVO ── Dashboard & KPI (lectura) */
 app.use('/api/v1/dashboard', dashboardRoutes);
