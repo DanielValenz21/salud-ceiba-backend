@@ -1,3 +1,4 @@
+import http from 'http';
 import express from 'express';
 import dotenv from 'dotenv';
 import helmet from 'helmet';
@@ -22,6 +23,11 @@ import { authenticate } from './src/middlewares/auth.js';           // protege /
 import clinicosRoutes  from './src/routes/clinicosRoutes.js';
 import dashboardRoutes from './src/routes/dashboard.js';
 import insumosRoutes   from './src/routes/insumos.js';   // ← NUEVO
+import exportRoutes    from './src/routes/export.js';    // NUEVA RUTA de export
+import qualityRoutes   from './src/routes/quality.js';
+import alertsRoutes    from './src/routes/alerts.js';
+import logsRoutes      from './src/routes/logs.js';
+import { initSocket }  from './src/sockets/alertsSocket.js';
 
 dotenv.config();
 const app = express();
@@ -56,6 +62,12 @@ app.use('/api/v1', insumosRoutes);           // ← NUEVO
 
 /* ── NUEVO ── Dashboard & KPI (lectura) */
 app.use('/api/v1/dashboard', dashboardRoutes);
+/* ── NUEVO ── Reportes & exportaciones */
+app.use('/api/v1/export', exportRoutes);
+/* 🔰 Nuevos módulos */
+app.use('/api/v1', qualityRoutes);
+app.use('/api/v1', alertsRoutes);
+app.use('/api/v1', logsRoutes);
 
 /* 404 */
 app.use((_req, res) =>
@@ -65,7 +77,10 @@ app.use((_req, res) =>
 /* Manejador de errores */
 app.use(errorHandler);
 
+/* Servidor HTTP + WebSocket ---------------------------------------- */
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () =>
-  console.log(`🚀  API lista en http://localhost:${PORT}  (docs en /docs)`)
-); 
+const httpServer = http.createServer(app);
+initSocket(httpServer);
+httpServer.listen(PORT, () =>
+  console.log(`🚀  API y WS activos en http://localhost:${PORT}`)
+);

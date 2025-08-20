@@ -25,6 +25,12 @@ tags:
     description: KPIs y series temporales
   - name: Inventario
     description: Gestión de inventario de insumos y trazabilidad
+  - name: Calidad
+    description: Diagnóstico rápido de calidad de datos
+  - name: Alertas
+    description: Gestión de alertas
+  - name: Logs
+    description: Auditoría de logs
 components:
   securitySchemes:
     bearerAuth:
@@ -432,6 +438,146 @@ paths:
           schema: { type: string, example: "202507" }
       responses:
         "200": { description: OK }
+
+  # ---------- Calidad de datos ----------
+  /quality/issues:
+    get:
+      tags: [Calidad]
+      summary: Diagnóstico rápido de calidad de datos
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: query
+          name: tabla
+          schema: { type: string }
+        - in: query
+          name: tipo
+          schema: { type: string, enum: [NULL_VALUE, RANGE, FK_MISSING, DUPLICATE] }
+        - in: query
+          name: desde
+          schema: { type: string, format: date-time }
+        - in: query
+          name: hasta
+          schema: { type: string, format: date-time }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 1000 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  meta:
+                    type: object
+                    properties:
+                      total: { type: integer }
+                      limit: { type: integer }
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        issue_id: { type: integer }
+                        tabla: { type: string }
+                        campo: { type: string }
+                        registro_pk: { type: integer }
+                        tipo: { type: string }
+                        valor: { type: string }
+                        detectado_en: { type: string, format: date-time }
+
+  # ---------- Alertas ----------
+  /alerts:
+    get:
+      tags: [Alertas]
+      summary: Lista alertas activas
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: query
+          name: tipo
+          schema: { type: string, maxLength: 40 }
+        - in: query
+          name: territorio
+          schema: { type: integer }
+        - in: query
+          name: activa
+          schema: { type: boolean, default: true }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 100 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    alerta_id: { type: integer }
+                    tipo: { type: string }
+                    descripcion: { type: string }
+                    nivel: { type: string }
+                    territorio_id: { type: integer }
+                    sector_id: { type: integer, nullable: true }
+                    vigente_desde: { type: string, format: date-time }
+                    vigente_hasta: { type: string, format: date-time, nullable: true }
+
+  # ---------- Logs ----------
+  /logs:
+    get:
+      tags: [Logs]
+      summary: Lista logs de auditoría
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: query
+          name: accion
+          schema: { type: string, enum: [CREATE, UPDATE, DELETE, EXPORT, LOGIN] }
+        - in: query
+          name: user_id
+          schema: { type: integer }
+        - in: query
+          name: recurso
+          schema: { type: string }
+        - in: query
+          name: desde
+          schema: { type: string, format: date-time }
+        - in: query
+          name: hasta
+          schema: { type: string, format: date-time }
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 100 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  meta:
+                    type: object
+                    properties:
+                      page: { type: integer }
+                      limit: { type: integer }
+                      total: { type: integer }
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        log_id: { type: integer }
+                        accion: { type: string }
+                        user_id: { type: integer }
+                        recurso: { type: string }
+                        creado_en: { type: string, format: date-time }
+
   /insumos:
     get:
       tags: [Inventario]
@@ -484,7 +630,78 @@ paths:
         "200": { description: OK }
         "404": { description: No encontrado }
   # ========================================
-  # 🔐 AUTENTICACIÓN
+  # � Exportaciones
+  # ========================================
+  /export/pdf/sala-situacional:
+    get:
+      tags: [Exportaciones]
+      summary: PDF con KPIs de cobertura
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: query
+          name: mes
+          schema: { type: string, example: "202507" }
+        - in: query
+          name: territorio
+          schema: { type: integer, example: 1 }
+        - in: query
+          name: con_alertas
+          schema: { type: boolean, default: false }
+      responses:
+        "200":
+          description: PDF generado
+          content:
+            application/pdf: {}
+
+  /export/excel/produccion:
+    get:
+      tags: [Exportaciones]
+      summary: Excel con datos de producción
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: query
+          name: desde
+          schema: { type: string, example: "2025-01" }
+        - in: query
+          name: hasta
+          schema: { type: string, example: "2025-07" }
+        - in: query
+          name: territorio
+          schema: { type: integer, example: 2 }
+      responses:
+        "200":
+          description: Excel generado
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet: {}
+
+  /export/csv/raw:
+    get:
+      tags: [Exportaciones]
+      summary: CSV raw de una tabla
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: query
+          name: from
+          schema: { type: string, example: "eventos" }
+        - in: query
+          name: cols
+          schema: { type: string, example: "evento_id,ind_id,fecha_evento" }
+        - in: query
+          name: where
+          schema: { type: string, example: "fecha_evento>=2025-07-01" }
+        - in: query
+          name: order
+          schema: { type: string, example: "fecha_evento DESC" }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 50000 }
+      responses:
+        "200":
+          description: CSV generado
+          content:
+            text/csv; charset=utf-8: {}
+  # ========================================
+  # �🔐 AUTENTICACIÓN
   # ========================================
   /auth/login:
     post:
