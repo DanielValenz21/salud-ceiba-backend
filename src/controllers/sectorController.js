@@ -11,11 +11,15 @@ import { getPagination } from '../utils/pagination.js';
 /* ---------- GET /sectores ------------------- */
 export const listSectores = async (req, res, next) => {
   try {
-    const { page, limit, territorio_id } = req.query;
-    const { offset } = getPagination(req);
+    // usa tu helper centralizado para normalizar page/limit/offset a números
+    const { page, limit, offset } = getPagination(req);
+
+    // territorio_id es opcional; normaliza a número si viene
+    const territorio_id = req.query.territorio_id ? Number(req.query.territorio_id) : undefined;
+
     const { total, rows } = await listSectors({ territorio_id, offset, limit });
 
-    res.json({ meta:{ page, limit, total }, data: rows });
+    res.json({ meta: { page, limit, total }, data: rows });
   } catch (err) { next(err); }
 };
 
