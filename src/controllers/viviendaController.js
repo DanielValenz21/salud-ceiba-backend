@@ -2,7 +2,8 @@ import {
   insertVivienda,
   getViviendaById,
   updateVivienda,
-  listPersonasByVivienda
+  listPersonasByVivienda,
+  listViviendas as modelListViviendas
 } from '../models/viviendaModel.js';
 import { getPagination } from '../utils/pagination.js';
 
@@ -52,5 +53,20 @@ export const getPersonasByVivienda = async (req, res, next) => {
       vivienda:{ vivienda_id:vivienda.vivienda_id, codigo_familia:vivienda.codigo_familia },
       data:data.rows
     });
+  } catch (err) { next(err); }
+};
+
+/* ---------- GET /viviendas (lista) ---------- */
+export const listViviendas = async (req, res, next) => {
+  try {
+    const { page, limit, offset } = getPagination(req);
+    const filters = {
+      sector_id: req.query.sector_id ? Number(req.query.sector_id) : undefined,
+      codigo_familia: req.query.codigo_familia
+    };
+
+    const data = await modelListViviendas({ offset, limit, ...filters });
+
+    res.json({ meta: { page, limit, total: data.total }, data: data.rows });
   } catch (err) { next(err); }
 };

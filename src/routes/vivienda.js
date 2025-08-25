@@ -7,7 +7,8 @@ import { authorizeRoles } from '../middlewares/authorize.js';
 import {
   createViviendaSchema,
   updateViviendaSchema,
-  personasQuerySchema
+  personasQuerySchema,
+  listQuerySchema
 } from '../validators/vivienda.js';
 import { createPersonaSchema } from '../validators/persona.js';
 
@@ -15,6 +16,7 @@ import {
   createVivienda,
   getVivienda,
   editVivienda,
+  listViviendas,
   getPersonasByVivienda
 } from '../controllers/viviendaController.js';
 import { createPersona } from '../controllers/personaController.js';
@@ -29,6 +31,13 @@ router.post(
   validate(createViviendaSchema),
   auditLog,
   createVivienda
+);
+
+router.get('/',
+  authenticate,
+  validate(listQuerySchema),
+  auditLog,
+  listViviendas
 );
 
 router.get('/:id',

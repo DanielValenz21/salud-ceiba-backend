@@ -24,3 +24,11 @@ export const personasQuerySchema = Joi.object({
   page:  Joi.number().integer().min(1).default(1),
   limit: Joi.number().integer().min(1).max(100).default(20)
 }).unknown(true);   // permite id en params
+
+/* ---------- GET /viviendas (listado) ------- */
+export const listQuerySchema = Joi.object({
+  page:  Joi.number().integer().min(1).default(1),
+  limit: Joi.number().integer().min(1).max(500).default(20),
+  sector_id: Joi.number().integer().min(1),
+  codigo_familia: Joi.string().max(12)
+}).unknown(true);
