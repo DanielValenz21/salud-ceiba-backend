@@ -119,6 +119,20 @@ components:
         codigo:        { type: string }
         nombre:        { type: string }
 
+    TerritorioInput:
+      type: object
+      required: [codigo,nombre]
+      properties:
+        codigo: { type: string, example: "T1" }
+        nombre: { type: string, example: "Territorio 1" }
+
+    TerritorioUpdate:
+      type: object
+      properties:
+        codigo: { type: string }
+        nombre: { type: string }
+      minProperties: 1
+
     SectorGeoJSON:
       type: object
       description: GeoJSON FeatureCollection
@@ -1168,6 +1182,55 @@ paths:
                     territorio_id: { type: integer, example: 1 }
                     codigo:        { type: string,  example: "T1" }
                     nombre:        { type: string,  example: "Territorio 1" }
+    post:
+      tags: [Sectorización]
+      summary: Crea un territorio
+      security: [ { bearerAuth: [] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TerritorioInput'
+      responses:
+        '201':
+          description: Creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Territorio'
+        '400': { description: Datos inválidos }
+        '409': { description: Código duplicado }
+
+  /territorios/{id}:
+    put:
+      tags: [Sectorización]
+      summary: Actualiza un territorio
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TerritorioUpdate' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/Territorio'
+                  - type: object
+                    properties:
+                      message: { type: string }
+        '400': { description: Datos inválidos }
+        '404': { description: Territorio no existe }
+        '409': { description: Código duplicado }
 
   /territorios/{id}/sectores:
     get:

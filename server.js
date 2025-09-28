@@ -3,7 +3,8 @@ import express from 'express';
 import dotenv from 'dotenv';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import { corsOptions } from './src/config/cors.js';
+import cors from 'cors';
+import { corsMiddleware, corsOptionsRaw } from './src/config/cors.js';
 import { swaggerMiddleware } from './src/config/swagger.js';
 
 import authRoutes  from './src/routes/auth.js';
@@ -34,7 +35,8 @@ const app = express();
 
 /* Seguridad y parseo */
 app.use(helmet());
-app.use(corsOptions);
+app.use(corsMiddleware);
+app.options('*', cors(corsOptionsRaw));
 app.use(express.json({ limit: '1mb' }));
 app.use(morgan(process.env.LOG_LEVEL || 'dev'));
 

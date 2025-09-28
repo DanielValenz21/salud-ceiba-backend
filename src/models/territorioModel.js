@@ -40,3 +40,51 @@ export const listSectoresByTerritorio = async ({ territorioId, includeStats }) =
   );
   return rows;
 };
+
+export const createTerritorio = async ({ codigo, nombre }) => {
+  // validar duplicado por codigo
+  const [[dup]] = await pool.execute(
+    'SELECT territorio_id FROM territorios WHERE codigo = ?',
+    [codigo]
+  );
+  if (dup) {
+    const err = new Error('Código de territorio ya existe');
+    err.status = 409; err.code = 'Conflict';
+    throw err;
+  }
+
+  const [res] = await pool.execute(
+    'INSERT INTO territorios (codigo, nombre) VALUES (?, ?)',
+    [codigo, nombre]
+  );
+  return { territorio_id: res.insertId, codigo, nombre };
+};
+
+export const updateTerritorio = async (id, { codigo, nombre }) => {
+  const fields = []; const params = [];
+  if (codigo) {
+    // check duplicado de otro territorio
+    const [[dup]] = await pool.execute(
+      'SELECT territorio_id FROM territorios WHERE codigo = ? AND territorio_id <> ?',
+      [codigo, id]
+    );
+    if (dup) {
+      const err = new Error('Código de territorio ya existe');
+      err.status = 409; err.code = 'Conflict';
+      throw err;
+    }
+    fields.push('codigo=?'); params.push(codigo);
+  }
+  if (nombre) { fields.push('nombre=?'); params.push(nombre); }
+
+  if (!fields.length) return;
+
+  params.push(id);
+  await pool.execute(`UPDATE territorios SET ${fields.join(', ')} WHERE territorio_id=?`, params);
+
+  const [[row]] = await pool.execute(
+    'SELECT territorio_id, codigo, nombre FROM territorios WHERE territorio_id=?',
+    [id]
+  );
+  return row;
+};
