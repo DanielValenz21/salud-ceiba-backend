@@ -42,16 +42,19 @@ export const listSectoresByTerritorio = async ({ territorioId, includeStats }) =
 };
 
 export const createTerritorio = async ({ codigo, nombre }) => {
-  // validar duplicado por codigo
+  codigo = String(codigo ?? '').trim().toUpperCase();
+  nombre = String(nombre ?? '').trim();
+
+  if (!codigo || !nombre) {
+    const e = new Error('codigo y nombre son requeridos'); e.status = 400; throw e;
+  }
+
+  // duplicado por código
   const [[dup]] = await pool.execute(
     'SELECT territorio_id FROM territorios WHERE codigo = ?',
     [codigo]
   );
-  if (dup) {
-    const err = new Error('Código de territorio ya existe');
-    err.status = 409; err.code = 'Conflict';
-    throw err;
-  }
+  if (dup) { const e = new Error('Código de territorio ya existe'); e.status = 409; throw e; }
 
   const [res] = await pool.execute(
     'INSERT INTO territorios (codigo, nombre) VALUES (?, ?)',
@@ -62,20 +65,22 @@ export const createTerritorio = async ({ codigo, nombre }) => {
 
 export const updateTerritorio = async (id, { codigo, nombre }) => {
   const fields = []; const params = [];
-  if (codigo) {
+  if (codigo !== undefined && codigo !== null) {
+    codigo = String(codigo).trim().toUpperCase();
+    if (!codigo) {
+      const e = new Error('codigo inválido'); e.status = 400; throw e;
+    }
     // check duplicado de otro territorio
     const [[dup]] = await pool.execute(
       'SELECT territorio_id FROM territorios WHERE codigo = ? AND territorio_id <> ?',
       [codigo, id]
     );
     if (dup) {
-      const err = new Error('Código de territorio ya existe');
-      err.status = 409; err.code = 'Conflict';
-      throw err;
+      const err = new Error('Código de territorio ya existe'); err.status = 409; throw err;
     }
     fields.push('codigo=?'); params.push(codigo);
   }
-  if (nombre) { fields.push('nombre=?'); params.push(nombre); }
+  if (nombre !== undefined && nombre !== null) { nombre = String(nombre).trim(); if (nombre) { fields.push('nombre=?'); params.push(nombre); } }
 
   if (!fields.length) return;
 
