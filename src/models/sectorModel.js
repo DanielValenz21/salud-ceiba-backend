@@ -77,9 +77,9 @@ export const getSectorById = async (id) => {
 export const updateSector = async (id, { nombre, referencia_lat, referencia_lng }) => {
   const fields = [];
   const params = [];
-  if (nombre)         { fields.push('nombre=?');         params.push(nombre); }
-  if (referencia_lat) { fields.push('referencia_lat=?'); params.push(referencia_lat); }
-  if (referencia_lng) { fields.push('referencia_lng=?'); params.push(referencia_lng); }
+  if (nombre !== undefined)         { fields.push('nombre=?');         params.push(nombre); }
+  if (referencia_lat !== undefined) { fields.push('referencia_lat=?'); params.push(referencia_lat); }
+  if (referencia_lng !== undefined) { fields.push('referencia_lng=?'); params.push(referencia_lng); }
   if (!fields.length) return;
   params.push(id);
   await pool.execute(`UPDATE sectores SET ${fields.join(', ')} WHERE sector_id=?`, params);

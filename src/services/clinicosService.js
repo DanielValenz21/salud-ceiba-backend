@@ -27,6 +27,38 @@ export async function insertEvento(payload, trx = null) {
   }
 }
 
+/* ---------- INDICADORES POR MÓDULO ---------- */
+const MODULE_RANGES = {
+  vacunacion:   [  1,  20],
+  nutricion:    [ 21, 100],
+  reproductiva: [101, 200],
+  epidemiologia:[201, 300]
+};
+
+export async function listIndicadores({ modulo, q = '', limit = 50, offset = 0 }) {
+  const range = MODULE_RANGES[modulo];
+  if (!range) throw Object.assign(new Error('Módulo inválido'), { status: 400, code: 'BadRequest' });
+  const [min, max] = range;
+
+  const where = ['ind_id BETWEEN ? AND ?'];
+  const params = [min, max];
+  if (q && q.trim()) {
+    where.push('nombre LIKE ?');
+    params.push(`%${q.trim()}%`);
+  }
+  const whereSQL = 'WHERE ' + where.join(' AND ');
+
+  const [[tot]] = await db.execute(
+    `SELECT COUNT(*) AS total FROM indicadores ${whereSQL}`,
+    params
+  );
+  const [rows] = await db.execute(
+    `SELECT ind_id, nombre FROM indicadores ${whereSQL} ORDER BY nombre LIMIT ? OFFSET ?`,
+    [...params, Number(limit), Number(offset)]
+  );
+  return { total: tot?.total ?? 0, rows };
+}
+
 /* ---------- MORBILIDAD (SIGSA 7) ---------- */
 export async function upsertMorbilidadLote({ anio, mes, territorio_id, datos }) {
   const conn = await db.getConnection();

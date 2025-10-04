@@ -103,3 +103,23 @@ export async function upsertMetrica(req, res) {
   await svc.upsertMetrica(dto);
   res.status(204).send();
 }
+
+// GET indicadores por módulo
+export async function listIndicadores(req, res, next) {
+  try {
+    const modulo = req.modulo || req.params.modulo || req.query.modulo;
+    if (!modulo) throw new BadRequest('Parámetro modulo es obligatorio');
+    const page  = Math.max(1, Number(req.query.page) || 1);
+    const limit = Math.min(200, Number(req.query.limit) || 50);
+    const q     = (req.query.q || '').trim();
+    const { total, rows } = await svc.listIndicadores({
+      modulo,
+      q,
+      limit,
+      offset: (page - 1) * limit
+    });
+    res.json({ meta: { page, limit, total }, data: rows });
+  } catch (err) {
+    next(err);
+  }
+}

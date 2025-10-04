@@ -13,6 +13,13 @@ r.post(
   ctrl.createEvento
 );
 r.get(
+  '/vacunacion/indicadores',
+  authenticate,
+  requireRole('promotor','admin'),
+  (req,_res,next) => { req.modulo = 'vacunacion'; next(); },
+  ctrl.listIndicadores
+);
+r.get(
   '/vacunacion/coberturas',
   authenticate,
   requireRole('promotor','admin'),
@@ -26,6 +33,13 @@ r.post(
   requireRole('promotor','admin'),
   (req,_res,next) => { req.modulo = 'nutricion'; next(); },
   ctrl.createEvento
+);
+r.get(
+  '/nutricion/indicadores',
+  authenticate,
+  requireRole('promotor','admin'),
+  (req,_res,next) => { req.modulo = 'nutricion'; next(); },
+  ctrl.listIndicadores
 );
 r.get(
   '/nutricion/coberturas',
@@ -43,6 +57,13 @@ r.post(
   ctrl.createEvento
 );
 r.get(
+  '/reproductiva/indicadores',
+  authenticate,
+  requireRole('promotor','admin'),
+  (req,_res,next) => { req.modulo = 'reproductiva'; next(); },
+  ctrl.listIndicadores
+);
+r.get(
   '/reproductiva/coberturas',
   authenticate,
   requireRole('promotor','admin'),
@@ -56,6 +77,13 @@ r.post(
   requireRole('promotor','admin'),
   (req,_res,next) => { req.modulo = 'epidemiologia'; next(); },
   ctrl.createEvento
+);
+r.get(
+  '/epidemiologia/indicadores',
+  authenticate,
+  requireRole('promotor','admin'),
+  (req,_res,next) => { req.modulo = 'epidemiologia'; next(); },
+  ctrl.listIndicadores
 );
 r.get(
   '/epidemiologia/coberturas',

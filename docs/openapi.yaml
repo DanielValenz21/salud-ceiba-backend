@@ -23,6 +23,8 @@ tags:
     description: Gestión de metas anuales por indicador y territorio
   - name: Dashboard
     description: KPIs y series temporales
+  - name: Clínicos
+    description: Endpoints de módulos clínicos (vacunación, nutrición, salud reproductiva, epidemiología)
   - name: Inventario
     description: Gestión de inventario de insumos y trazabilidad
   - name: Calidad
@@ -390,6 +392,24 @@ components:
         fecha_mov:  { type: string, format: date }
         referencia: { type: string, maxLength: 80 }
 
+    IndicadorItem:
+      type: object
+      properties:
+        ind_id: { type: integer }
+        nombre: { type: string }
+    IndicadoresList:
+      type: object
+      properties:
+        meta:
+          type: object
+          properties:
+            page:  { type: integer }
+            limit: { type: integer }
+            total: { type: integer }
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/IndicadorItem' }
+
 security:
   - bearerAuth: []
 
@@ -398,6 +418,95 @@ paths:
     get:
       tags: [Dashboard]
       summary: KPIs por mes / territorio / sector
+  /vacunacion/indicadores:
+    get:
+      tags: [Clínicos]
+      summary: Lista de indicadores válidos para Vacunación
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+          description: Texto de búsqueda por nombre
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/IndicadoresList' }
+        '401': { description: Unauthorized }
+  /nutricion/indicadores:
+    get:
+      tags: [Clínicos]
+      summary: Lista de indicadores válidos para Nutrición
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/IndicadoresList' }
+        '401': { description: Unauthorized }
+  /reproductiva/indicadores:
+    get:
+      tags: [Clínicos]
+      summary: Lista de indicadores válidos para Salud Reproductiva
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/IndicadoresList' }
+        '401': { description: Unauthorized }
+  /epidemiologia/indicadores:
+    get:
+      tags: [Clínicos]
+      summary: Lista de indicadores válidos para Epidemiología
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+        - in: query
+          name: page
+          schema: { type: integer, minimum: 1, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/IndicadoresList' }
+        '401': { description: Unauthorized }
       parameters:
         - in: query
           name: periodo
