@@ -1,6 +1,7 @@
 import Joi from 'joi';
 import * as svc from '../services/clinicosService.js';
 import { BadRequest } from '../utils/errors.js';
+import { mortalidadListQuerySchema } from '../validators/clinicos.js';
 
 // Utils
 const moduleRanges = {
@@ -119,6 +120,16 @@ export async function listIndicadores(req, res, next) {
       offset: (page - 1) * limit
     });
     res.json({ meta: { page, limit, total }, data: rows });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function listMortalidad(req, res, next) {
+  try {
+    const q = await mortalidadListQuerySchema.validateAsync(req.query, { abortEarly: false });
+    const data = await svc.listMortalidad(q);
+    res.json(data);
   } catch (err) {
     next(err);
   }

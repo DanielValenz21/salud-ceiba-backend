@@ -112,6 +112,11 @@ r.post(
   requireRole('digitador','admin'),
   ctrl.createDefuncion
 );
+r.get(
+  '/mortalidad/registros',
+  authenticate,
+  ctrl.listMortalidad
+);
 
 /* ---- Ambiente ---- */
 r.post(

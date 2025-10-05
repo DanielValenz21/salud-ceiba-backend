@@ -507,6 +507,40 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/IndicadoresList' }
         '401': { description: Unauthorized }
+  /mortalidad/registros:
+    get:
+      tags: [Clínicos]
+      summary: Lista/filtra registros de mortalidad
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - in: query
+          name: causa_id
+          schema: { type: integer }
+        - in: query
+          name: territorio_id
+          schema: { type: integer }
+        - in: query
+          name: persona_id
+          schema: { type: integer }
+        - in: query
+          name: anio
+          schema: { type: integer }
+        - in: query
+          name: mes
+          schema: { type: integer, minimum: 1, maximum: 12 }
+        - in: query
+          name: modo
+          schema: { type: string, enum: [agregado, detalle], default: agregado }
+        - in: query
+          name: page
+          schema: { type: integer, default: 1 }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 50 }
+      responses:
+        '200':
+          description: OK
+        '401': { description: Unauthorized }
       parameters:
         - in: query
           name: periodo

@@ -175,3 +175,68 @@ export async function listMorbilidad({ causa_id, territorio_id, anio, mes }) {
 
   return rows;
 }
+
+/* ---------- MORTALIDAD – GET /mortalidad/registros ---------- */
+function buildWhere(alias, f) {
+  const where = [];
+  const params = [];
+  if (f.persona_id)    { where.push(`${alias}.persona_id = ?`);    params.push(f.persona_id); }
+  if (f.causa_id)      { where.push(`${alias}.causa_id = ?`);      params.push(f.causa_id); }
+  if (f.territorio_id) { where.push(`${alias}.territorio_id = ?`); params.push(f.territorio_id); }
+  if (f.anio)          { where.push(`${alias}.anio = ?`);          params.push(f.anio); }
+  if (f.mes)           { where.push(`${alias}.mes = ?`);           params.push(f.mes); }
+  return { whereSQL: where.length ? 'WHERE ' + where.join(' AND ') : '', params };
+}
+
+export async function listMortalidad(f = {}) {
+  const { whereSQL, params } = buildWhere('m', f);
+
+  if (f.modo === 'detalle') {
+    const limit = Number(f.limit) || 50;
+    const page  = Math.max(1, Number(f.page) || 1);
+    const offset = (page - 1) * limit;
+    const [rows] = await db.execute(
+      `SELECT
+          m.registro_id,
+          m.persona_id,
+          m.causa_id,
+          c.nombre        AS causa_nombre,
+          m.territorio_id,
+          t.nombre        AS territorio_nombre,
+          m.anio, m.mes,
+          m.defunciones,
+          m.fecha_defuncion,
+          m.lugar_defuncion,
+          m.certificador_id,
+          m.detalle_json,
+          m.created_at
+        FROM mortalidad_registros m
+        LEFT JOIN causas c      ON c.causa_id = m.causa_id
+        LEFT JOIN territorios t ON t.territorio_id = m.territorio_id
+        ${whereSQL}
+        ORDER BY m.anio DESC, m.mes DESC, m.created_at DESC
+        LIMIT ? OFFSET ?`,
+      [...params, limit, offset]
+    );
+    return rows;
+  }
+
+  const [rows] = await db.execute(
+    `SELECT
+        m.causa_id,
+        c.nombre        AS causa_nombre,
+        m.territorio_id,
+        t.nombre        AS territorio_nombre,
+        m.anio,
+        m.mes,
+        SUM(m.defunciones) AS total_defunciones
+      FROM mortalidad_registros m
+      LEFT JOIN causas c      ON c.causa_id = m.causa_id
+      LEFT JOIN territorios t ON t.territorio_id = m.territorio_id
+      ${whereSQL}
+      GROUP BY m.causa_id, m.territorio_id, m.anio, m.mes
+      ORDER BY m.anio DESC, m.mes DESC`,
+    params
+  );
+  return rows;
+}
