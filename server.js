@@ -28,6 +28,7 @@ import exportRoutes    from './src/routes/export.js';    // NUEVA RUTA de export
 import qualityRoutes   from './src/routes/quality.js';
 import alertsRoutes    from './src/routes/alerts.js';
 import logsRoutes      from './src/routes/logs.js';
+import saludPublicaRoutes from './src/routes/saludPublica.routes.js';
 import { initSocket }  from './src/sockets/alertsSocket.js';
 
 dotenv.config();
@@ -70,6 +71,7 @@ app.use('/api/v1/export', exportRoutes);
 app.use('/api/v1', qualityRoutes);
 app.use('/api/v1', alertsRoutes);
 app.use('/api/v1', logsRoutes);
+app.use('/api/v1', saludPublicaRoutes);
 
 /* 404 */
 app.use((_req, res) =>

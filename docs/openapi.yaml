@@ -33,6 +33,8 @@ tags:
     description: Gestión de alertas
   - name: Logs
     description: Auditoría de logs
+  - name: Salud Pública
+    description: Catálogos, periodos y KPIs de morbilidad, mortalidad y ambiente
 components:
   securitySchemes:
     bearerAuth:
@@ -414,6 +416,187 @@ security:
   - bearerAuth: []
 
 paths:
+  /causas:
+    get:
+      tags: [Salud Pública]
+      summary: Catálogo de causas (SIGSA / ICD-10)
+      security: [ { bearerAuth: [] } ]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:           { type: integer }
+                    sigsa_codigo: { type: string, nullable: true }
+                    codigo_icd10: { type: string, nullable: true }
+                    nombre:       { type: string }
+  /periodos/anios:
+    get:
+      tags: [Salud Pública]
+      summary: Lista de años disponibles por módulo
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: query
+          name: modulo
+          schema: { type: string, enum: [morbilidad,mortalidad,ambiente], default: morbilidad }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { type: integer }
+  /periodos/meses:
+    get:
+      tags: [Salud Pública]
+      summary: Lista de meses disponibles por módulo y año
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: query
+          name: modulo
+          schema: { type: string, enum: [morbilidad,mortalidad,ambiente], default: morbilidad }
+        - in: query
+          name: anio
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: territorioId
+          schema: { oneOf: [ { type: string, enum: [all] }, { type: integer } ] }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    value: { type: integer }
+                    label: { type: string }
+  /morbilidad/kpi/total:
+    get:
+      tags: [Salud Pública]
+      summary: Total de eventos de morbilidad (mórbido + epidemio)
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: query
+          name: territorioId
+          schema: { oneOf: [ { type: string, enum: [all] }, { type: integer } ] }
+        - in: query
+          name: anio
+          schema: { type: integer }
+        - in: query
+          name: mes
+          schema: { oneOf: [ { type: string, enum: [all] }, { type: integer, minimum: 1, maximum: 12 } ] }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total: { type: integer }
+  /mortalidad/kpi/total:
+    get:
+      tags: [Salud Pública]
+      summary: Total de defunciones
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: query
+          name: territorioId
+          schema: { oneOf: [ { type: string, enum: [all] }, { type: integer } ] }
+        - in: query
+          name: anio
+          schema: { type: integer }
+        - in: query
+          name: mes
+          schema: { oneOf: [ { type: string, enum: [all] }, { type: integer, minimum: 1, maximum: 12 } ] }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total: { type: integer }
+  /ambiente/kpi/total:
+    get:
+      tags: [Salud Pública]
+      summary: Total de registros ambientales
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: query
+          name: territorioId
+          schema: { oneOf: [ { type: string, enum: [all] }, { type: integer } ] }
+        - in: query
+          name: anio
+          schema: { type: integer }
+        - in: query
+          name: mes
+          schema: { oneOf: [ { type: string, enum: [all] }, { type: integer, minimum: 1, maximum: 12 } ] }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total: { type: integer }
+  /morbilidad/consulta:
+    get:
+      tags: [Salud Pública]
+      summary: Agregado de morbilidad por periodo y territorio
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: query
+          name: territorioId
+          schema: { oneOf: [ { type: string, enum: [all] }, { type: integer } ] }
+        - in: query
+          name: anio
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: mes
+          schema: { oneOf: [ { type: string, enum: [all] }, { type: integer, minimum: 1, maximum: 12 } ] }
+        - in: query
+          name: causaId
+          schema: { oneOf: [ { type: string, enum: [all] }, { type: integer } ] }
+      responses:
+        '200':
+          description: OK
+  /mortalidad/consulta:
+    get:
+      tags: [Salud Pública]
+      summary: Agregado de mortalidad por periodo y territorio
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: query
+          name: territorioId
+          schema: { oneOf: [ { type: string, enum: [all] }, { type: integer } ] }
+        - in: query
+          name: anio
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: mes
+          schema: { oneOf: [ { type: string, enum: [all] }, { type: integer, minimum: 1, maximum: 12 } ] }
+        - in: query
+          name: causaId
+          schema: { oneOf: [ { type: string, enum: [all] }, { type: integer } ] }
+      responses:
+        '200':
+          description: OK
+  
   /dashboard/coberturas:
     get:
       tags: [Dashboard]
@@ -1244,6 +1427,27 @@ paths:
                   defuncion_id: { type: integer }
 
   /ambiente/metricas:
+    get:
+      tags: [Salud Pública]
+      summary: Resumen de métricas ambientales por periodo y territorio
+      security: [ { bearerAuth: [] } ]
+      parameters:
+        - in: query
+          name: territorioId
+          schema: { oneOf: [ { type: string, enum: [all] }, { type: integer } ] }
+        - in: query
+          name: anio
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: mes
+          schema: { oneOf: [ { type: string, enum: [all] }, { type: integer, minimum: 1, maximum: 12 } ] }
+        - in: query
+          name: indId
+          schema: { oneOf: [ { type: string, enum: [all] }, { type: integer } ] }
+      responses:
+        '200':
+          description: OK
     post:
       tags: [Métricas]
       summary: Inserta o actualiza métricas de ambiente
