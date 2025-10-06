@@ -3,14 +3,19 @@ import { validate } from '../middlewares/validate.js';
 import {
   filterSchema,
   createSchema,
-  updateSchema
+  updateSchema,
+  updateMeSchema,
+  changePasswordSchema
 } from '../validators/user.js';
 import {
   getUsers,
   createUser,
   getUser,
   editUser,
-  disableUser
+  disableUser,
+  getMe,
+  updateMe,
+  changeMyPassword
 } from '../controllers/userController.js';
 import {
   authorizeAdmin,
@@ -18,6 +23,11 @@ import {
 } from '../middlewares/authorize.js';
 
 const router = Router();
+
+/* Perfil autenticado */
+router.get('/me', getMe);
+router.put('/me', validate(updateMeSchema), updateMe);
+router.put('/me/password', validate(changePasswordSchema), changeMyPassword);
 
 /* GET /users?page&limit&rol&activo&q */
 router.get('/', authorizeAdmin, validate(filterSchema), getUsers);

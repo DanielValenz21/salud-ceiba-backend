@@ -6,7 +6,8 @@ import {
   insertUser,
   updateUser,
   deactivateUser,
-  purgeRefreshTokens
+  purgeRefreshTokens,
+  getUserAuthById
 } from '../models/userModel.js';
 import {
   resolveRoleId,
@@ -138,3 +139,55 @@ export const getRoles = async (_req, res, next) => {
     res.json(roles);
   } catch (err) { next(err); }
 }; 
+
+/* ---------------------------------------------------------------
+   Perfil del usuario autenticado
+--------------------------------------------------------------- */
+export const getMe = async (req, res, next) => {
+  try {
+    const id = req.user?.user_id;
+    if (!id) return res.status(401).json({ error: 'Unauthorized', message: 'Token requerido' });
+    const user = await getUserById(id);
+    if (!user) return res.status(404).json({ error: 'NotFound', message: 'Usuario no existe' });
+    res.json(user);
+  } catch (err) { next(err); }
+};
+
+export const updateMe = async (req, res, next) => {
+  try {
+    const id = req.user?.user_id;
+    if (!id) return res.status(401).json({ error: 'Unauthorized', message: 'Token requerido' });
+
+    const current = await getUserById(id);
+    if (!current) return res.status(404).json({ error: 'NotFound', message: 'Usuario no existe' });
+
+    const data = {};
+    if (req.body.nombre !== undefined) data.nombre = req.body.nombre;
+    if (req.body.telefono !== undefined) data.telefono = req.body.telefono;
+    if (req.body.avatar_url !== undefined) data.avatar_url = req.body.avatar_url;
+    if (req.body.puesto !== undefined) data.puesto = req.body.puesto;
+
+    await updateUser(id, data);
+    res.locals.pk = id;
+    res.json({ message: 'Perfil actualizado' });
+  } catch (err) { next(err); }
+};
+
+export const changeMyPassword = async (req, res, next) => {
+  try {
+    const id = req.user?.user_id;
+    if (!id) return res.status(401).json({ error: 'Unauthorized', message: 'Token requerido' });
+
+    const auth = await getUserAuthById(id);
+    if (!auth) return res.status(404).json({ error: 'NotFound', message: 'Usuario no existe' });
+
+    const ok = await bcrypt.compare(req.body.current_password, auth.password_hash);
+    if (!ok) return res.status(400).json({ error: 'BadRequest', message: 'Contraseña actual incorrecta' });
+
+    const password_hash = await bcrypt.hash(req.body.new_password, 12);
+    await updateUser(id, { password_hash });
+    await purgeRefreshTokens(id);
+    res.locals.pk = id;
+    res.status(204).end();
+  } catch (err) { next(err); }
+};

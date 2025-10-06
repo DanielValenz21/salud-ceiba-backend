@@ -28,3 +28,16 @@ export const updateSchema = Joi.object({
 })
 .min(1)          // al menos un campo modificable
 .unknown(true);  // ignora id, page, q… que no pertenecen al body 
+
+/* ── Perfil propio ─────────────────────────────────────────── */
+export const updateMeSchema = Joi.object({
+  nombre:     Joi.string().max(50).optional(),
+  telefono:   Joi.string().max(30).optional(),
+  avatar_url: Joi.string().uri().max(300).optional(),
+  puesto:     Joi.string().max(60).optional()
+}).min(1);
+
+export const changePasswordSchema = Joi.object({
+  current_password: Joi.string().required(),
+  new_password:     Joi.string().pattern(pwdRx).required()
+});

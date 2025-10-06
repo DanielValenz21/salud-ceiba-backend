@@ -60,7 +60,8 @@ export const listUsers = async ({ offset, limit, rol, activo, q }) => {
 export const getUserById = async (id) => {
   const [rows] = await pool.execute(
     `SELECT u.user_id,u.nombre,u.email,r.name AS rol,
-            u.activo,u.creado_en,u.persona_id
+            u.activo,u.creado_en,u.persona_id,
+            u.telefono,u.avatar_url,u.puesto
        FROM usuarios u
        JOIN roles r USING(role_id)
       WHERE u.user_id = ?`,
@@ -123,3 +124,12 @@ export const findByEmail = async (email) => {
   );
   return rows[0];
 }; 
+
+/* ► Autenticación por ID (para cambio de password) */
+export const getUserAuthById = async (id) => {
+  const [rows] = await pool.execute(
+    'SELECT user_id, password_hash FROM usuarios WHERE user_id = ? AND activo = 1',
+    [id]
+  );
+  return rows[0];
+};
