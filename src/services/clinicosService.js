@@ -91,6 +91,22 @@ export async function upsertMorbilidadLote({ anio, mes, territorio_id, datos }) 
 
 /* ---------- MORTALIDAD ---------- */
 export async function insertDefuncion(payload) {
+  // Normalizar lugar_defuncion al enum: 'hospital' | 'hogar' | 'vía pública' | 'otro'
+  const normalizeLugar = (val) => {
+    const base = (val ?? 'hogar')
+      .toString().trim().toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/\s+/g, ' ');
+
+    if (base === 'hospital') return 'hospital';
+    if (base === 'hogar' || base === 'domicilio' || base === 'casa') return 'hogar';
+    if (base === 'via publica') return 'vía pública';
+    if (base === 'otro') return 'otro';
+    return 'hogar';
+  };
+
+  const lugar = normalizeLugar(payload.lugar_defuncion);
+
   const [res] = await db.execute(
     `INSERT INTO mortalidad_registros
        (persona_id, causa_id, territorio_id, fecha_defuncion,
@@ -100,9 +116,9 @@ export async function insertDefuncion(payload) {
       payload.persona_id ?? null,
       payload.causa_id,
       payload.territorio_id,
-      payload.fecha_defuncion,
-      payload.lugar_defuncion,
-      payload.certificador_id,
+      payload.fecha_defuncion,     // ISO string válida para DATETIME
+      lugar,
+      payload.certificador_id ?? null,
       JSON.stringify(payload.detalle_json ?? {})
     ]
   );
@@ -177,65 +193,76 @@ export async function listMorbilidad({ causa_id, territorio_id, anio, mes }) {
 }
 
 /* ---------- MORTALIDAD – GET /mortalidad/registros ---------- */
+// --- WHERE dinámico usando YEAR/MONTH(fecha_defuncion) ---
 function buildWhere(alias, f) {
   const where = [];
   const params = [];
-  if (f.persona_id)    { where.push(`${alias}.persona_id = ?`);    params.push(f.persona_id); }
-  if (f.causa_id)      { where.push(`${alias}.causa_id = ?`);      params.push(f.causa_id); }
-  if (f.territorio_id) { where.push(`${alias}.territorio_id = ?`); params.push(f.territorio_id); }
-  if (f.anio)          { where.push(`${alias}.anio = ?`);          params.push(f.anio); }
-  if (f.mes)           { where.push(`${alias}.mes = ?`);           params.push(f.mes); }
+
+  if (f.persona_id)    { where.push(`${alias}.persona_id = ?`);            params.push(f.persona_id); }
+  if (f.causa_id)      { where.push(`${alias}.causa_id = ?`);              params.push(f.causa_id); }
+  if (f.territorio_id) { where.push(`${alias}.territorio_id = ?`);         params.push(f.territorio_id); }
+  if (f.anio)          { where.push(`YEAR(${alias}.fecha_defuncion) = ?`);  params.push(f.anio); }
+  if (f.mes)           { where.push(`MONTH(${alias}.fecha_defuncion) = ?`); params.push(f.mes); }
+
   return { whereSQL: where.length ? 'WHERE ' + where.join(' AND ') : '', params };
 }
 
+// --- LISTA de mortalidad ---
 export async function listMortalidad(f = {}) {
   const { whereSQL, params } = buildWhere('m', f);
 
   if (f.modo === 'detalle') {
-    const limit = Number(f.limit) || 50;
-    const page  = Math.max(1, Number(f.page) || 1);
+    const limit  = Math.min(200, Number(f.limit) || 50);
+    const page   = Math.max(1, Number(f.page) || 1);
     const offset = (page - 1) * limit;
+
     const [rows] = await db.execute(
       `SELECT
-          m.registro_id,
-          m.persona_id,
-          m.causa_id,
-          c.nombre        AS causa_nombre,
-          m.territorio_id,
-          t.nombre        AS territorio_nombre,
-          m.anio, m.mes,
-          m.defunciones,
-          m.fecha_defuncion,
-          m.lugar_defuncion,
-          m.certificador_id,
-          m.detalle_json,
-          m.created_at
-        FROM mortalidad_registros m
-        LEFT JOIN causas c      ON c.causa_id = m.causa_id
-        LEFT JOIN territorios t ON t.territorio_id = m.territorio_id
-        ${whereSQL}
-        ORDER BY m.anio DESC, m.mes DESC, m.created_at DESC
-        LIMIT ? OFFSET ?`,
+         m.defuncion_id                       AS registro_id,   -- PK real
+         m.persona_id,
+         m.causa_id,
+         c.descripcion                        AS causa_nombre,
+         m.territorio_id,
+         t.nombre                             AS territorio_nombre,
+         YEAR(m.fecha_defuncion)              AS anio,          -- calculado
+         MONTH(m.fecha_defuncion)             AS mes,           -- calculado
+         1                                    AS defunciones,   -- una fila = una defunción
+         m.fecha_defuncion,
+         m.lugar_defuncion,
+         m.certificador_id,
+         m.detalle_json,
+         m.created_at
+       FROM mortalidad_registros m
+       LEFT JOIN causas      c ON c.causa_id = m.causa_id
+       LEFT JOIN territorios t ON t.territorio_id = m.territorio_id
+       ${whereSQL}
+       ORDER BY anio DESC, mes DESC, m.created_at DESC
+       LIMIT ? OFFSET ?`,
       [...params, limit, offset]
     );
     return rows;
   }
 
+  // modo agregado
   const [rows] = await db.execute(
     `SELECT
-        m.causa_id,
-        c.nombre        AS causa_nombre,
-        m.territorio_id,
-        t.nombre        AS territorio_nombre,
-        m.anio,
-        m.mes,
-        SUM(m.defunciones) AS total_defunciones
-      FROM mortalidad_registros m
-      LEFT JOIN causas c      ON c.causa_id = m.causa_id
-      LEFT JOIN territorios t ON t.territorio_id = m.territorio_id
-      ${whereSQL}
-      GROUP BY m.causa_id, m.territorio_id, m.anio, m.mes
-      ORDER BY m.anio DESC, m.mes DESC`,
+       m.causa_id,
+       c.descripcion                        AS causa_nombre,
+       m.territorio_id,
+       t.nombre                             AS territorio_nombre,
+       YEAR(m.fecha_defuncion)              AS anio,           -- calculado
+       MONTH(m.fecha_defuncion)             AS mes,            -- calculado
+       COUNT(*)                             AS total_defunciones
+     FROM mortalidad_registros m
+     LEFT JOIN causas      c ON c.causa_id = m.causa_id
+     LEFT JOIN territorios t ON t.territorio_id = m.territorio_id
+     ${whereSQL}
+     GROUP BY
+       m.causa_id,
+       m.territorio_id,
+       YEAR(m.fecha_defuncion),
+       MONTH(m.fecha_defuncion)
+     ORDER BY anio DESC, mes DESC`,
     params
   );
   return rows;

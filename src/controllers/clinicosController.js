@@ -41,14 +41,32 @@ const morbilidadPostSchema = Joi.object({
                     })
                   ).min(1).required()
 });
-const defuncionSchema = Joi.object({
-  persona_id:      Joi.number().integer().positive().allow(null),
-  causa_id:        Joi.number().integer().positive().required(),
-  territorio_id:   Joi.number().integer().positive().required(),
-  fecha_defuncion: Joi.date().max('now').required(),
-  lugar_defuncion: Joi.string().valid('hospital','domicilio','otro').required(),
-  certificador_id: Joi.number().integer().positive().required(),
-  detalle_json:    Joi.object().default({})
+// --- helpers de normalización (mismo criterio que en el service) ---
+const LUGARES_VALIDOS = ['hospital', 'hogar', 'vía pública', 'otro'];
+
+function normalizeLugar(val) {
+  const raw = (val ?? '').toString().trim();
+  const base = raw
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // quita acentos
+    .replace(/\s+/g, ' ');
+
+  if (base === 'hospital') return 'hospital';
+  if (base === 'hogar' || base === 'domicilio' || base === 'casa') return 'hogar';
+  if (base === 'via publica') return 'vía pública';
+  if (base === 'otro') return 'otro';
+  return 'hogar'; // default seguro
+}
+
+const crearDefuncionSchema = Joi.object({
+  persona_id: Joi.number().integer().positive().allow(null),
+  causa_id: Joi.number().integer().required(),
+  territorio_id: Joi.number().integer().required(),
+  fecha_defuncion: Joi.date().iso().required(),
+  // aceptamos cualquier string y luego normalizamos + validamos contra el set
+  lugar_defuncion: Joi.string().required(),
+  certificador_id: Joi.number().integer().allow(null),
+  detalle_json: Joi.object().unknown(true).optional()
 });
 const metricaSchema = Joi.object({
   ind_id:        Joi.number().integer().min(301).max(310).required(),
@@ -93,10 +111,21 @@ export async function listMorbilidad(req, res) {
   res.json(rows);
 }
 
-export async function createDefuncion(req, res) {
-  const dto = await defuncionSchema.validateAsync(req.body, { abortEarly:false });
-  const defuncion_id = await svc.insertDefuncion(dto);
-  res.status(201).json({ defuncion_id });
+export async function createDefuncion(req, res, next) {
+  try {
+    const raw = await crearDefuncionSchema.validateAsync(req.body, { abortEarly: false });
+
+    const lugar = normalizeLugar(raw.lugar_defuncion);
+    if (!LUGARES_VALIDOS.includes(lugar)) {
+      return res.status(400).json({ error: 'BadRequest', message: 'lugar_defuncion inválido' });
+    }
+
+    const payload = { ...raw, lugar_defuncion: lugar };
+    const defuncion_id = await svc.insertDefuncion(payload);
+    return res.status(201).json({ defuncion_id });
+  } catch (err) {
+    return next(err);
+  }
 }
 
 export async function upsertMetrica(req, res) {
